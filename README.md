@@ -142,6 +142,30 @@ The following tasks are included in the role to ensure MySQL is installed and co
     login_user: root
     login_password: "{{ mysql_root_password }}"
 ```
+## Execution Instructions
+
+### Setup SSH Key Authentication
+
+```bash
+# Generate a new SSH key (skip if you already have one)
+ssh-keygen -t rsa -b 2048
+
+# Copy your public key to both servers (for local VM)
+ssh-copy-id -i ~/.ssh/id_rsa.pub ubuntu@192.168.0.108
+
+# For ec2 instance
+ssh-copy-id -f "-o IdentityFile <PATH TO PEM FILE>" ubuntu@<INSTANCE-PUBLIC-IP> #Debian
+ssh-copy-id -f "-o IdentityFile <PATH TO PEM FILE>" ec2-user@<INSTANCE-PUBLIC-IP> #RedHat
+```
+### Test Connectivity
+
+```bash
+# Test SSH connectivity
+ansible dbservers -m ping
+
+# Test with specific inventory
+ansible -i inventory.ini dbservers -m ping
+```
 
 ## Run the Playbook
 Execute the playbook and capture the output for auditing:
