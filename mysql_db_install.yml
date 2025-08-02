@@ -1,0 +1,8 @@
+---
+- name: Install and configure MySQL
+  hosts: dbservers
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: mysql_install

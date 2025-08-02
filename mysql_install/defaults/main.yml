@@ -1,0 +1,7 @@
+---
+# defaults file for mysql_install
+mysql_root_password: "StrongRootPass"      # MySQL root password
+mysql_user: "appuser"                      # Application database user
+mysql_user_password: "AppUserPass"         # Password for the application user
+mysql_database: "appdb"                    # Name of the application database
+mysql_port: 3306                           # MySQL port (default: 3306)

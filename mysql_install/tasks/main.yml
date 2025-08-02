@@ -1,0 +1,48 @@
+---
+# tasks file for mysql_install
+- name: Install MySQL server (Debian/Ubuntu)
+  apt:
+    name: mysql-server
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install MySQL server (RHEL/CentOS)
+  yum:
+    name: mysql-server
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Ensure MySQL is started and enabled
+  service:
+    name: "{{ 'mysql' if ansible_os_family == 'Debian' else 'mysqld' }}"
+    state: started
+    enabled: yes
+
+- name: Set MySQL root password
+  mysql_user:
+    name: root
+    host: "{{ item }}"
+    password: "{{ mysql_root_password }}"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    check_implicit_admin: yes
+    state: present
+  loop:
+    - 'localhost'
+    - '127.0.0.1'
+    - '::1'
+
+- name: Create application database
+  mysql_db:
+    name: "{{ mysql_database }}"
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: Create application user
+  mysql_user:
+    name: "{{ mysql_user }}"
+    password: "{{ mysql_user_password }}"
+    priv: "{{ mysql_database }}.*:ALL"
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"

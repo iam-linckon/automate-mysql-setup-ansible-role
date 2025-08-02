@@ -78,7 +78,7 @@ mysql_port: 3306                           # MySQL port (default: 3306)
 ```
 
 ## Playbook for MySQL Installation
-Below is a professionally crafted playbook (mysql_db_install.yml) to use the role:
+Create a playbook (e.g., mysql_db_install.yml) to use the role:
 
 ```yaml
 ---
