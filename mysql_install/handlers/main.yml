@@ -1,2 +1,5 @@
 ---
-# handlers file for mysql_install
+- name: restart mysql
+  ansible.builtin.service:
+    name: mysqld
+    state: restarted

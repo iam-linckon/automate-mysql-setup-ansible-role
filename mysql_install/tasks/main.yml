@@ -1,48 +1,90 @@
 ---
-# tasks file for mysql_install
+- name: Update apt cache (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: yes
+  when: ansible_facts['os_family'] == "Debian"
+
 - name: Install MySQL server (Debian/Ubuntu)
-  apt:
+  ansible.builtin.apt:
     name: mysql-server
     state: present
-  when: ansible_os_family == "Debian"
+  when: ansible_facts['os_family'] == "Debian"
 
-- name: Install MySQL server (RHEL/CentOS)
-  yum:
+- name: Install MySQL server (RedHat/CentOS)
+  ansible.builtin.yum:
     name: mysql-server
     state: present
-  when: ansible_os_family == "RedHat"
+  when: ansible_facts['os_family'] == "RedHat"
 
-- name: Ensure MySQL is started and enabled
-  service:
-    name: "{{ 'mysql' if ansible_os_family == 'Debian' else 'mysqld' }}"
+- name: Start and enable MySQL service (Debian/Ubuntu)
+  ansible.builtin.service:
+    name: mysql # Changed from mysqld to mysql
     state: started
     enabled: yes
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Start and enable MySQL service (RedHat/CentOS)
+  ansible.builtin.service:
+    name: mysqld # Remains mysqld for RedHat
+    state: started
+    enabled: yes
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Install PyMySQL for Python 3 (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: python3-pymysql
+    state: present
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Ensure pip is installed for Python 3 (RedHat/CentOS)
+  ansible.builtin.yum:
+    name: python3-pip
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Install PyMySQL for Python 3 (RedHat/CentOS)
+  ansible.builtin.pip:
+    name: PyMySQL
+    executable: pip3
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Wait for MySQL socket to be available
+  ansible.builtin.wait_for:
+    path: /var/run/mysqld/mysqld.sock # Ensure this path matches your system's MySQL socket
+    state: present
+    delay: 5 # Wait 5 seconds before first check
+    timeout: 120 # Timeout after 120 seconds
+  # You might need to adjust the socket path based on your OS.
+  # For example, on some systems, it might be /run/mysqld/mysqld.sock or /tmp/mysql.sock
 
 - name: Set MySQL root password
-  mysql_user:
+  community.mysql.mysql_user:
     name: root
-    host: "{{ item }}"
+    host: localhost
     password: "{{ mysql_root_password }}"
-    login_unix_socket: /var/run/mysqld/mysqld.sock
-    check_implicit_admin: yes
-    state: present
-  loop:
-    - 'localhost'
-    - '127.0.0.1'
-    - '::1'
+    login_unix_socket: /var/run/mysqld/mysqld.sock # Double-check this path on your target system!
+  # no_log: true # <--- REMEMBER TO UNCOMMENT THIS LINE AFTER TESTING!
 
-- name: Create application database
-  mysql_db:
+- name: Create MySQL database
+  community.mysql.mysql_db: # Corrected: Removed ansible.builtin.
     name: "{{ mysql_database }}"
     state: present
     login_user: root
     login_password: "{{ mysql_root_password }}"
 
-- name: Create application user
-  mysql_user:
+- name: Create MySQL user
+  community.mysql.mysql_user: # Corrected: Removed ansible.builtin.
     name: "{{ mysql_user }}"
     password: "{{ mysql_user_password }}"
-    priv: "{{ mysql_database }}.*:ALL"
+    host: "%" # Allows connection from any host, or specify 'localhost' or an IP
+    priv: "{{ mysql_database }}.*:ALL" # Grant all privileges on the specific database
     state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  #no_log: true # Prevent sensitive data from appearing in logs
+
+- name: Flush privileges
+  community.mysql.mysql_query: # Corrected: Removed ansible.builtin.
+    query: FLUSH PRIVILEGES;
     login_user: root
     login_password: "{{ mysql_root_password }}"

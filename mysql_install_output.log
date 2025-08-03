@@ -1,0 +1,48 @@
+
+PLAY [Install and configure MySQL] *********************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [server1]
+
+TASK [mysql_install : Update apt cache (Debian/Ubuntu)] ************************
+changed: [server1]
+
+TASK [mysql_install : Install MySQL server (Debian/Ubuntu)] ********************
+ok: [server1]
+
+TASK [mysql_install : Install MySQL server (RedHat/CentOS)] ********************
+skipping: [server1]
+
+TASK [mysql_install : Start and enable MySQL service (Debian/Ubuntu)] **********
+ok: [server1]
+
+TASK [mysql_install : Start and enable MySQL service (RedHat/CentOS)] **********
+skipping: [server1]
+
+TASK [mysql_install : Install PyMySQL for Python 3 (Debian/Ubuntu)] ************
+ok: [server1]
+
+TASK [mysql_install : Ensure pip is installed for Python 3 (RedHat/CentOS)] ****
+skipping: [server1]
+
+TASK [mysql_install : Install PyMySQL for Python 3 (RedHat/CentOS)] ************
+skipping: [server1]
+
+TASK [mysql_install : Wait for MySQL socket to be available] *******************
+ok: [server1]
+
+TASK [mysql_install : Set MySQL root password] *********************************
+ok: [server1]
+
+TASK [mysql_install : Create MySQL database] ***********************************
+ok: [server1]
+
+TASK [mysql_install : Create MySQL user] ***************************************
+changed: [server1]
+
+TASK [mysql_install : Flush privileges] ****************************************
+ok: [server1]
+
+PLAY RECAP *********************************************************************
+server1                    : ok=10   changed=2    unreachable=0    failed=0    skipped=4    rescued=0    ignored=0   
+

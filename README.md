@@ -95,50 +95,94 @@ Create a playbook (e.g., mysql_db_install.yml) to use the role:
 The following tasks are included in the role to ensure MySQL is installed and configured properly:
 
 ```yaml
+---
+- name: Update apt cache (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: yes
+  when: ansible_facts['os_family'] == "Debian"
+
 - name: Install MySQL server (Debian/Ubuntu)
-  apt:
+  ansible.builtin.apt:
     name: mysql-server
     state: present
-  when: ansible_os_family == "Debian"
+  when: ansible_facts['os_family'] == "Debian"
 
-- name: Install MySQL server (RHEL/CentOS)
-  yum:
+- name: Install MySQL server (RedHat/CentOS)
+  ansible.builtin.yum:
     name: mysql-server
     state: present
-  when: ansible_os_family == "RedHat"
+  when: ansible_facts['os_family'] == "RedHat"
 
-- name: Ensure MySQL is started and enabled
-  service:
-    name: "{{ 'mysql' if ansible_os_family == 'Debian' else 'mysqld' }}"
+- name: Start and enable MySQL service (Debian/Ubuntu)
+  ansible.builtin.service:
+    name: mysql # Changed from mysqld to mysql
     state: started
     enabled: yes
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Start and enable MySQL service (RedHat/CentOS)
+  ansible.builtin.service:
+    name: mysqld # Remains mysqld for RedHat
+    state: started
+    enabled: yes
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Install PyMySQL for Python 3 (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: python3-pymysql
+    state: present
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Ensure pip is installed for Python 3 (RedHat/CentOS)
+  ansible.builtin.yum:
+    name: python3-pip
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Install PyMySQL for Python 3 (RedHat/CentOS)
+  ansible.builtin.pip:
+    name: PyMySQL
+    executable: pip3
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Wait for MySQL socket to be available
+  ansible.builtin.wait_for:
+    path: /var/run/mysqld/mysqld.sock # Ensure this path matches your system's MySQL socket
+    state: present
+    delay: 5 # Wait 5 seconds before first check
+    timeout: 120 # Timeout after 120 seconds
+  # You might need to adjust the socket path based on your OS.
+  # For example, on some systems, it might be /run/mysqld/mysqld.sock or /tmp/mysql.sock
 
 - name: Set MySQL root password
-  mysql_user:
+  community.mysql.mysql_user:
     name: root
-    host: "{{ item }}"
+    host: localhost
     password: "{{ mysql_root_password }}"
-    login_unix_socket: /var/run/mysqld/mysqld.sock
-    check_implicit_admin: yes
-    state: present
-  loop:
-    - 'localhost'
-    - '127.0.0.1'
-    - '::1'
+    login_unix_socket: /var/run/mysqld/mysqld.sock # Double-check this path on your target system!
+  # no_log: true # <--- REMEMBER TO UNCOMMENT THIS LINE AFTER TESTING!
 
-- name: Create application database
-  mysql_db:
+- name: Create MySQL database
+  community.mysql.mysql_db: # Corrected: Removed ansible.builtin.
     name: "{{ mysql_database }}"
     state: present
     login_user: root
     login_password: "{{ mysql_root_password }}"
 
-- name: Create application user
-  mysql_user:
+- name: Create MySQL user
+  community.mysql.mysql_user: # Corrected: Removed ansible.builtin.
     name: "{{ mysql_user }}"
     password: "{{ mysql_user_password }}"
-    priv: "{{ mysql_database }}.*:ALL"
+    host: "%" # Allows connection from any host, or specify 'localhost' or an IP
+    priv: "{{ mysql_database }}.*:ALL" # Grant all privileges on the specific database
     state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  #no_log: true # Prevent sensitive data from appearing in logs
+
+- name: Flush privileges
+  community.mysql.mysql_query: # Corrected: Removed ansible.builtin.
+    query: FLUSH PRIVILEGES;
     login_user: root
     login_password: "{{ mysql_root_password }}"
 ```
@@ -149,8 +193,89 @@ Execute the playbook and capture the output for auditing:
 ```bash
 ansible-playbook -i inventory.ini mysql_db_install.yml -v | tee mysql_install_output.log
 ```
+
+## Installation Output
 The file mysql_install_output.log will contain the full output of the installation and configuration process.
+
+```bash
+
+PLAY [Install and configure MySQL] *********************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [server1]
+
+TASK [mysql_install : Update apt cache (Debian/Ubuntu)] ************************
+changed: [server1]
+
+TASK [mysql_install : Install MySQL server (Debian/Ubuntu)] ********************
+ok: [server1]
+
+TASK [mysql_install : Install MySQL server (RedHat/CentOS)] ********************
+skipping: [server1]
+
+TASK [mysql_install : Start and enable MySQL service (Debian/Ubuntu)] **********
+ok: [server1]
+
+TASK [mysql_install : Start and enable MySQL service (RedHat/CentOS)] **********
+skipping: [server1]
+
+TASK [mysql_install : Install PyMySQL for Python 3 (Debian/Ubuntu)] ************
+ok: [server1]
+
+TASK [mysql_install : Ensure pip is installed for Python 3 (RedHat/CentOS)] ****
+skipping: [server1]
+
+TASK [mysql_install : Install PyMySQL for Python 3 (RedHat/CentOS)] ************
+skipping: [server1]
+
+TASK [mysql_install : Wait for MySQL socket to be available] *******************
+ok: [server1]
+
+TASK [mysql_install : Set MySQL root password] *********************************
+ok: [server1]
+
+TASK [mysql_install : Create MySQL database] ***********************************
+ok: [server1]
+
+TASK [mysql_install : Create MySQL user] ***************************************
+changed: [server1]
+
+TASK [mysql_install : Flush privileges] ****************************************
+ok: [server1]
+
+PLAY RECAP *********************************************************************
+server1                    : ok=10   changed=2    unreachable=0    failed=0    skipped=4    rescued=0    ignored=0   
+
+```
 
 ## Verify Installation
 Log in to the target database server and verify that MySQL is installed, running, and configured as expected.
 
+```bash
+ubuntu@ip-172-31-20-43:~$ mysql -u root -p
+Enter password:
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 16
+Server version: 8.0.42-0ubuntu0.24.04.2 (Ubuntu)
+
+Copyright (c) 2000, 2025, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> SHOW DATABASES;
++--------------------+
+| Database           |
++--------------------+
+| appdb              |
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+5 rows in set (0.00 sec)
+
+```
