@@ -1,3 +1,13 @@
+<p align="center">
+  <img src="https://img.shields.io/badge/Ansible-Automation-blue?logo=ansible" alt="Ansible Badge"/>
+  <img src="https://img.shields.io/badge/MySQL-Database-blue?logo=mysql" alt="MySQL Badge"/>
+  <img src="https://img.shields.io/badge/OS-Linux-yellow?logo=linux" alt="Linux Badge"/>
+  <img src="https://img.shields.io/badge/Platform-Ubuntu-orange?logo=ubuntu" alt="Ubuntu Badge"/>
+  <img src="https://img.shields.io/github/license/iam-linckon/automate-mysql-setup-ansible-role" alt="License Badge"/>
+</p>
+
+
+
 # MySQL Installation and Configuration with Ansible Role
 
 ## Overview  
